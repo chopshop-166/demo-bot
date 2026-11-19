@@ -1,0 +1,120 @@
+// Copyright (c) FIRST and other WPILib contributors.
+// Open Source Software; you can modify and/or share it under the terms of
+// the WPILib BSD license file in the root directory of this project.
+
+package frc.robot;
+
+import java.util.function.DoubleUnaryOperator;
+
+import org.littletonrobotics.junction.Logger;
+
+import com.chopshop166.chopshoplib.Autonomous;
+import com.chopshop166.chopshoplib.commands.CommandRobot;
+import com.chopshop166.chopshoplib.controls.ButtonXboxController;
+
+import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.CommandScheduler;
+import edu.wpi.first.wpilibj2.command.Commands;
+import frc.robot.maps.RobotMap;
+
+public final class Robot extends CommandRobot {
+
+    private RobotMap map = getRobotMap(RobotMap.class, new RobotMap());
+    private ButtonXboxController driveController = new ButtonXboxController(0);
+    private ButtonXboxController copilotController = new ButtonXboxController(1);
+
+    // Helpers
+    final DoubleUnaryOperator driveScaler = getScaler(0.45, 0.25);
+    NetworkTableInstance ntinst = NetworkTableInstance.getDefault();
+
+    // Things that use all the subsystems
+    private CommandSequences sequences = new CommandSequences(this);
+
+    public Robot() {
+        super();
+        registerNamedCommands();
+    }
+
+    @Override
+    public void robotInit() {
+        super.robotInit();
+
+        // Record metadata
+        Logger.recordMetadata("ProjectName", BuildConstants.MAVEN_NAME);
+        Logger.recordMetadata("BuildDate", BuildConstants.BUILD_DATE);
+        Logger.recordMetadata("GitSHA", BuildConstants.GIT_SHA);
+        Logger.recordMetadata("GitDate", BuildConstants.GIT_DATE);
+        Logger.recordMetadata("GitBranch", BuildConstants.GIT_BRANCH);
+        Logger.recordMetadata("GitDirty", switch (BuildConstants.DIRTY) {
+            case 0 -> "All changes committed";
+            case 1 -> "Uncomitted changes";
+            default -> "Unknown";
+        });
+        Logger.recordMetadata("RobotMap", map.getClass().getName());
+
+        map.setupLogging();
+
+        if (!isReal()) {
+            setUseTiming(false); // Run as fast as possible
+        }
+        // Start logging! No more data receivers, replay sources, or metadata values
+        // may be added.
+        Logger.start();
+
+        CommandScheduler.getInstance().schedule();
+        DriverStation.silenceJoystickConnectionWarning(true);
+
+        CommandScheduler.getInstance().onCommandInterrupt((oldCmd, newCmd) -> {
+            if (!DriverStation.isFMSAttached()) {
+                String newSub = "<NONE>";
+                String newName = "<NONE>";
+                if (newCmd.isPresent()) {
+                    newSub = newCmd.get().getSubsystem();
+                    newName = newCmd.get().getName();
+                }
+                System.out.println("Command interrupt: `" + oldCmd.getSubsystem() + "/" +
+                        oldCmd.getName() + "` -> `" + newSub + "/" + newName + "`");
+            }
+        });
+    }
+
+    @Override
+    public void disabledInit() {
+        super.disabledInit();
+    }
+
+    @Override
+    public void teleopInit() {
+        super.teleopInit();
+    }
+
+    @Override
+    public void configureButtonBindings() {
+
+    }
+
+    private final void registerNamedCommands() {
+    }
+
+    @Override
+    public void populateDashboard() {
+    }
+
+    @Override
+    public void setDefaultCommands() {
+    }
+
+    public DoubleUnaryOperator getScaler(double leftRange, double rightRange) {
+        return speed -> {
+            double leftTrigger = driveController.getLeftTriggerAxis();
+            double rightTrigger = driveController.getRightTriggerAxis();
+            double modifier = (rightRange * rightTrigger) - (leftRange * leftTrigger) + 0.75;
+            return modifier * speed;
+        };
+    }
+
+}
