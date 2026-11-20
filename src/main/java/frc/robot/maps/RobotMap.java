@@ -5,8 +5,13 @@ import org.littletonrobotics.junction.Logger;
 import org.littletonrobotics.junction.wpilog.WPILOGReader;
 import org.littletonrobotics.junction.wpilog.WPILOGWriter;
 
+import frc.robot.maps.subsystems.DriveMap;
 
 public class RobotMap {
+
+    public DriveMap getDriveMap() {
+        return new DriveMap();
+    }
 
     public void setupLogging() {
         // Pull the replay log from AdvantageScope (or prompt the user)
